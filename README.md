@@ -1,6 +1,9 @@
 # treemap
+
 A Ruby port of the Android implementation of Java's java.util.TreeMap class.
+
 This is an AVL tree based implementation of Java's java.util.TreeMap structure.
+
 It implements Java's java.util.NavigableMap interface.
 
 
