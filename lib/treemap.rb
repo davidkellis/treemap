@@ -1,4 +1,5 @@
 require 'pp'
+require 'set'
 
 # TreeMap is a Ruby port of https://android.googlesource.com/platform/libcore.git/+/android-6.0.1_r32/luni/src/main/java/java/util/TreeMap.java
 # This is an AVL tree based implementation of Java's java.util.TreeMap structure.
@@ -143,7 +144,7 @@ class TreeMap
 
   NaturalOrder = ->(this, that) { this <=> that }
 
-  attr_accessor :size
+  attr_accessor :comparator, :root, :size
 
   # comparator is a function of the form: (this, that) -> int ; where int is -1 if this < that, 0 if this == that, and 1 if this > that
   def initialize(comparator = NaturalOrder)
@@ -550,6 +551,20 @@ class TreeMap
 
   # View factory methods
 
+  def entry_set
+    Set.new(each_node.to_a)
+  end
+
+  def key_set
+    Set.new(each_node.map(&:key))
+  end
+
+  alias keys key_set
+
+  def values
+    each_node.map(&:value)
+  end
+
   # todo
 
   # Tree traversal methods
@@ -582,13 +597,117 @@ class TreeMap
     end
   end
 
-  def each
+  # each {|k,v| puts "#{k}->#{v}"}
+  def each(&blk)
+    if block_given?
+      each_node {|node| blk.call(node.key, node.value) }
+      # iter = NodeIterator.new(@root.first)
+      # while iter.has_next?
+      #   node = iter.step_forward()
+      #   yield node.key, node.value
+      # end
+    else
+      enum_for(:each)
+    end
+  end
+
+  # each_node {|node| puts "#{node.key}->#{node.value}"}
+  def each_node
     if block_given?
       iter = NodeIterator.new(@root.first)
       while iter.has_next?
-        node = iter.step_forward()
-        yield node.key, node.value
+        yield iter.step_forward()
       end
+    else
+      enum_for(:each_node)
+    end
+  end
+
+
+  module Bound
+    INCLUSIVE = 1
+    EXCLUSIVE = 2
+    NO_BOUND = 3
+  end
+
+  # A map with optional limits on its range.
+  class BoundedMap
+    attr_accessor :treemap
+
+    def initialize(treemap, ascending, from, from_bound, to, to_bound)
+      @treemap = treemap
+
+      # Validate the bounds. In addition to checking that from <= to, we verify that the comparator supports our bound objects.
+      if from_bound != Bound::NO_BOUND && to_bound != Bound::NO_BOUND
+        raise "Invalid from and to arguments: #{from} (from) > #{to} (to)" if comparator.call(from, to) > 0
+      elsif from_bound != Bound::NO_BOUND
+        comparator.call(from, from)
+      elsif to_bound != Bound::NO_BOUND
+        comparator.call(to, to)
+      end
+
+      @ascending = ascending
+      @from = from
+      @from_bound = from_bound
+      @to = to
+      @to_bound = to_bound
+    end
+
+    def comparator
+      @treemap.comparator
+    end
+
+    def size
+      entry_set.count
+    end
+
+    def empty?
+      endpoint(true).nil?
+    end
+
+    def get(key)
+      @treemap.get(key) if in_bounds?(key)
+    end
+
+    def contains_key?(key)
+      in_bounds?(key) && @treemap.contains_key?(key)
+    end
+
+    def put(key, value)
+      raise "Key out of bounds." unless in_bounds?(key)
+      put_internal(key, value)
+    end
+
+    def remove(key)
+      @treemap.remove(key) if in_bounds?(key)
+    end
+
+    # Returns true if the key is in bounds.
+    # Note: The reference implementation calls this function isInBounds
+    def in_bounds?(key)
+      in_closed_bounds?(key, @from_bound, @to_bound)
+    end
+
+    # Returns true if the key is in bounds. Use this overload with
+    # NO_BOUND to skip bounds checking on either end.
+    # Note: The reference implementation calls this function isInBounds
+    def in_closed_bounds(key, from_bound, to_bound)
+      if from_bound == Bound::INCLUSIVE
+        return false if comparator.call(key, from) < 0    # less than from
+      elsif from_bound == Bound::EXCLUSIVE
+        return false if comparator.call(key, from) <= 0   # less than or equal to from
+      end
+      if to_bound == Bound::INCLUSIVE
+        return false if comparator.call(key, to) > 0        # greater than 'to'
+      elsif to_bound == Bound::EXCLUSIVE
+        return false if comparator.call(key, to) >= 0       # greater than or equal to 'to'
+      end
+      true
+    end
+
+    # Returns the entry if it is in bounds, or null if it is out of bounds.
+    def bound(node, from_bound, to_bound)
+      # todo, resume work here, line 1033 in TreeMap.java
     end
   end
 end
