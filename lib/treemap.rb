@@ -653,10 +653,6 @@ class TreeMap
       @to_bound = to_bound
     end
 
-    def comparator
-      @treemap.comparator
-    end
-
     def size
       entry_set.count
     end
@@ -691,7 +687,7 @@ class TreeMap
     # Returns true if the key is in bounds. Use this overload with
     # NO_BOUND to skip bounds checking on either end.
     # Note: The reference implementation calls this function isInBounds
-    def in_closed_bounds(key, from_bound, to_bound)
+    def in_closed_bounds?(key, from_bound, to_bound)
       if from_bound == Bound::INCLUSIVE
         return false if comparator.call(key, from) < 0    # less than from
       elsif from_bound == Bound::EXCLUSIVE
@@ -707,7 +703,241 @@ class TreeMap
 
     # Returns the entry if it is in bounds, or null if it is out of bounds.
     def bound(node, from_bound, to_bound)
-      # todo, resume work here, line 1033 in TreeMap.java
+      in_closed_bounds?(node.key, from_bound, to_bound) if node
+    end
+
+    # Navigable methods
+
+    def first_entry
+      endpoint(true)
+    end
+
+    def poll_first_entry
+      result = endpoint(true)
+      remove_internal(result) if result
+      result
+    end
+
+    def first_key
+      entry = endpoint(true)
+      raise "No such element" unless entry
+      entry.key
+    end
+
+    def last_entry
+      endpoint(false)
+    end
+
+    def poll_last_entry
+      result = endpoint(false)
+      remove_internal(result) if result
+      result
+    end
+
+    def last_key
+      entry = endpoint(false)
+      raise "No such element" unless entry
+      entry.key
+    end
+
+    # <first> - true for the first element, false for the last
+    def endpoint(first)
+      node, from, to = if (@ascending == first) {
+        node = case @from_bound
+        when Bound::NO_BOUND
+          @treemap.root.first if @treemap.root
+        when Bound::INCLUSIVE
+          find(@from, Relation::CEILING)
+        when Bound::EXCLUSIVE
+          find(@from, Relation::HIGHER)
+        else
+          raise "Undefined bound."
+        end
+        [node, Bound::NO_BOUND, @to_bound]
+      else
+        node = case @to_bound
+        when Bound::NO_BOUND
+          @treemap.root.last if @treemap.root
+        when Bound::INCLUSIVE
+          find(@to, Relation::FLOOR)
+        when Bound::EXCLUSIVE
+          find(@to, Relation::LOWER)
+        default:
+          raise "Undefined bound."
+        end
+        [node, @from_bound, Bound::NO_BOUND]
+      end
+      bound(node, from, to)
+    end
+
+    # Performs a find on the underlying tree after constraining it to the
+    # bounds of this view. Examples:
+    #
+    #   bound is (A..C)
+    #   find_bounded(B, FLOOR) stays source.find(B, FLOOR)
+    #
+    #   bound is (A..C)
+    #   find_bounded(C, FLOOR) becomes source.find(C, LOWER)
+    #
+    #   bound is (A..C)
+    #   find_bounded(D, LOWER) becomes source.find(C, LOWER)
+    #
+    #   bound is (A..C]
+    #   find_bounded(D, FLOOR) becomes source.find(C, FLOOR)
+    #
+    #   bound is (A..C]
+    #   find_bounded(D, LOWER) becomes source.find(C, FLOOR)
+    def find_bounded(key, relation) {
+      relation = Relation.for_order(relation, @ascending)
+      from_bound_for_check = @from_bound
+      to_bound_for_check = @to_bound
+      if @to_bound != Bound::NO_BOUND && (relation == Relation::LOWER || relation == Relation::FLOOR)
+        comparison = comparator.call(to, key)
+        if comparison <= 0
+          key = @to
+          if @to_bound == Bound::EXCLUSIVE
+            relation = Relation::LOWER # 'to' is too high
+          else comparison < 0
+            relation = Relation::FLOOR # we already went lower
+          end
+        end
+        to_bound_for_check = Bound::NO_BOUND # we've already checked the upper bound
+      end
+      if @from_bound != Bound::NO_BOUND && (relation == Relation::CEILING || relation == Relation::HIGHER)
+        comparison = comparator.call(from, key)
+        if comparison >= 0
+          key = @from
+          if @from_bound == Bound::EXCLUSIVE
+            relation = Relation::HIGHER # 'from' is too low
+          else comparison > 0
+            relation = Relation::CEILING # we already went higher
+          end
+        end
+        from_bound_for_check = Bound::NO_BOUND # we've already checked the lower bound
+      end
+      bound(find(key, relation), from_bound_for_check, to_bound_for_check)
+    end
+
+    def lower_entry(key)
+      find_bounded(key, Relation::LOWER)
+    end
+
+    def lower_key(key)
+      entry = find_bounded(key, Relation::LOWER)
+      entry.key if entry
+    end
+
+    def floor_entry(key)
+      find_bounded(key, Relation::FLOOR)
+    end
+
+    def floor_key(key)
+      entry = find_bounded(key, Relation::FLOOR)
+      entry.key if entry
+    end
+
+    def ceiling_entry(key)
+      find_bounded(key, Relation::CEILING)
+    end
+
+    def ceiling_key(key)
+      entry = find_bounded(key, Relation::CEILING)
+      entry.key if entry
+    end
+
+    def higher_entry(key)
+      find_bounded(key, Relation::HIGHER)
+    end
+
+    def higher_key(key)
+      entry = find_bounded(key, Relation::HIGHER)
+      entry.key if entry
+    end
+
+    def comparator
+      if @ascending
+        @treemap.comparator
+      else
+        ->(this, that) { -@treemap.comparator.call(this, that) }
+      end
+    end
+
+    # View factory methods
+
+    def entry_set
+      # todo
+    end
+
+    def key_set
+      # todo
+    end
+
+    def descending_map
+      BoundedMap.new(!@ascending, @from, @from_bound, @to, @to_bound)
+    end
+
+    def descending_key_set
+      BoundedMap.new(!@ascending, @from, @from_bound, @to, @to_bound).key_set
+    end
+
+    def sub_map(from, from_inclusive, to, to_inclusive)
+        from_bound = from_inclusive ? Bound::INCLUSIVE : Bound::EXCLUSIVE
+        to_bound = to_inclusive ? Bound::INCLUSIVE : Bound::EXCLUSIVE
+        return sub_map(from, from_bound, to, to_bound)
+    end
+
+    def sub_map(from_inclusive, to_exclusive)
+      return sub_map(from_inclusive, Bound::INCLUSIVE, to_exclusive, Bound::EXCLUSIVE);
+    end
+
+    def head_map(to, inclusive)
+      to_bound = inclusive ? Bound::INCLUSIVE : Bound::EXCLUSIVE;
+      return sub_map(nil, Bound::NO_BOUND, to, to_bound);
+    end
+
+    def head_map(to_exclusive)
+      return sub_map(nil, Bound::NO_BOUND, to_exclusive, Bound::EXCLUSIVE);
+    end
+
+    def tail_map(from, inclusive)
+      from_bound = inclusive ? Bound::INCLUSIVE : Bound::EXCLUSIVE;
+      return sub_map(from, from_bound, nil, Bound::NO_BOUND);
+    end
+
+    def tail_map(from_inclusive)
+      return sub_map(fromInclusive, Bound::INCLUSIVE, nil, Bound::NO_BOUND);
+    end
+
+    def sub_map(K from, Bound from_bound, K to, Bound to_bound)
+      if !@ascending
+        K fromTmp = from;
+        Bound from_boundTmp = from_bound;
+        from = to;
+        from_bound = to_bound;
+        to = fromTmp;
+        to_bound = from_boundTmp;
+      end
+      # If both the current and requested bounds are exclusive, the isInBounds check must be
+      # inclusive. For example, to create (C..F) from (A..F), the bound 'F' is in bounds.
+      if from_bound == Bound::NO_BOUND
+        from = this.from;
+        from_bound = this.from_bound;
+      else
+        Bound from_boundToCheck = from_bound == this.from_bound ? Bound::INCLUSIVE : this.from_bound;
+        if !isInBounds(from, from_boundToCheck, this.to_bound)
+          throw outOfBounds(to, from_boundToCheck, this.to_bound);
+        end
+      end
+      if to_bound == Bound::NO_BOUND
+        to = this.to;
+        to_bound = this.to_bound;
+      else
+        Bound to_boundToCheck = to_bound == this.to_bound ? Bound::INCLUSIVE : this.to_bound;
+        if (!isInBounds(to, this.from_bound, to_boundToCheck)) {
+          throw outOfBounds(to, this.from_bound, to_boundToCheck);
+        end
+      end
+      return new BoundedMap(ascending, from, from_bound, to, to_bound);
     end
   end
 end
