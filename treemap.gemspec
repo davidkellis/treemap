@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   DESC
   s.authors     = ["David Ellis"]
   s.email       = "davidkellis@gmail.com"
-  s.files       = ["lib/treemap.rb"]
+  s.files       = ["lib/tree_map.rb", "lib/bounded_map.rb"]
   s.homepage    = "https://github.com/davidkellis/treemap"
   s.license     = "MIT"
 end

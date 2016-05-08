@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require 'treemap'
+require 'tree_map'
 require 'set'
 
 class TreeMapTest < Minitest::Test
@@ -21,5 +21,57 @@ class TreeMapTest < Minitest::Test
 
     assert_equal(Set.new([1,10,100]), m.keys)
     assert_equal(["foo", "bar", "baz"], m.values)
+
+    assert_equal(1, m.first_key)
+    assert_equal(100, m.last_key)
+
+    assert_equal(nil, m.lower_key(0))
+    assert_equal(nil, m.floor_key(0))
+    assert_equal(1, m.ceiling_key(0))
+    assert_equal(1, m.higher_key(0))
+
+    assert_equal(nil, m.lower_key(1))
+    assert_equal(1, m.floor_key(1))
+
+    assert_equal(1, m.lower_key(10))
+    assert_equal(10, m.floor_key(10))
+    assert_equal(10, m.ceiling_key(10))
+    assert_equal(100, m.higher_key(10))
+
+    assert_equal(100, m.ceiling_key(100))
+    assert_equal(nil, m.higher_key(100))
+
+    assert_equal(100, m.lower_key(500))
+    assert_equal(100, m.floor_key(500))
+    assert_equal(nil, m.ceiling_key(500))
+    assert_equal(nil, m.higher_key(500))
+  end
+
+  def test_bounded_map
+    m = TreeMap.new
+
+    m.put(0, "a")
+    m.put(10, "b")
+    m.put(20, "c")
+    m.put(30, "d")
+    m.put(40, "e")
+    m.put(50, "f")
+    m.put(60, "g")
+    m.put(70, "h")
+    m.put(80, "i")
+    m.put(90, "j")
+    m.put(100, "k")
+
+    hm1 = m.head_map(30)
+    assert_equal(hm1.to_a, [[0,"a"], [10, "b"], [20, "c"]])
+
+    hm2 = m.head_map(30, true)
+    assert_equal(hm2.to_a, [[0,"a"], [10, "b"], [20, "c"], [30, "d"]])
+
+    tm1 = m.tail_map(80)
+    assert_equal(tm1.to_a, [[80,"i"], [90, "j"], [100, "k"]])
+
+    tm2 = m.tail_map(80, false)
+    assert_equal(tm2.to_a, [[90, "j"], [100, "k"]])
   end
 end
