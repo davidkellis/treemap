@@ -6,6 +6,7 @@ class TreeMap
   end
 
   # A map with optional limits on its range.
+  # This is intended to be used only by the TreeMap class.
   class BoundedMap
     include Enumerable
 
@@ -28,10 +29,6 @@ class TreeMap
       @from_bound = from_bound
       @to = to
       @to_bound = to_bound
-    end
-
-    def size
-      entry_set.count
     end
 
     def empty?
@@ -66,9 +63,9 @@ class TreeMap
     # Note: The reference implementation calls this function isInBounds
     def in_closed_bounds?(key, from_bound, to_bound)
       if from_bound == Bound::INCLUSIVE
-        return false if comparator.call(key, from) < 0    # less than from
+        return false if comparator.call(key, from) < 0      # less than from
       elsif from_bound == Bound::EXCLUSIVE
-        return false if comparator.call(key, from) <= 0   # less than or equal to from
+        return false if comparator.call(key, from) <= 0     # less than or equal to from
       end
       if to_bound == Bound::INCLUSIVE
         return false if comparator.call(key, to) > 0        # greater than 'to'
@@ -80,7 +77,7 @@ class TreeMap
 
     # Returns the entry if it is in bounds, or null if it is out of bounds.
     def bound(node, from_bound, to_bound)
-      in_closed_bounds?(node.key, from_bound, to_bound) if node
+      node if node && in_closed_bounds?(node.key, from_bound, to_bound)
     end
 
     # Navigable methods
@@ -91,7 +88,7 @@ class TreeMap
 
     def poll_first_entry
       result = endpoint(true)
-      remove_internal(result) if result
+      @treemap.remove_internal(result) if result
       result
     end
 
@@ -107,7 +104,7 @@ class TreeMap
 
     def poll_last_entry
       result = endpoint(false)
-      remove_internal(result) if result
+      @treemap.remove_internal(result) if result
       result
     end
 
@@ -124,9 +121,9 @@ class TreeMap
         when Bound::NO_BOUND
           @treemap.root.first if @treemap.root
         when Bound::INCLUSIVE
-          find(@from, Relation::CEILING)
+          @treemap.find(@from, Relation::CEILING)
         when Bound::EXCLUSIVE
-          find(@from, Relation::HIGHER)
+          @treemap.find(@from, Relation::HIGHER)
         else
           raise "Undefined bound."
         end
@@ -136,9 +133,9 @@ class TreeMap
         when Bound::NO_BOUND
           @treemap.root.last if @treemap.root
         when Bound::INCLUSIVE
-          find(@to, Relation::FLOOR)
+          @treemap.find(@to, Relation::FLOOR)
         when Bound::EXCLUSIVE
-          find(@to, Relation::LOWER)
+          @treemap.find(@to, Relation::LOWER)
         else
           raise "Undefined bound."
         end
@@ -169,7 +166,7 @@ class TreeMap
       from_bound_for_check = @from_bound
       to_bound_for_check = @to_bound
       if @to_bound != Bound::NO_BOUND && (relation == Relation::LOWER || relation == Relation::FLOOR)
-        comparison = comparator.call(to, key)
+        comparison = comparator.call(@to, key)
         if comparison <= 0
           key = @to
           if @to_bound == Bound::EXCLUSIVE
@@ -181,7 +178,7 @@ class TreeMap
         to_bound_for_check = Bound::NO_BOUND # we've already checked the upper bound
       end
       if @from_bound != Bound::NO_BOUND && (relation == Relation::CEILING || relation == Relation::HIGHER)
-        comparison = comparator.call(from, key)
+        comparison = comparator.call(@from, key)
         if comparison >= 0
           key = @from
           if @from_bound == Bound::EXCLUSIVE
@@ -192,7 +189,7 @@ class TreeMap
         end
         from_bound_for_check = Bound::NO_BOUND # we've already checked the lower bound
       end
-      bound(find(key, relation), from_bound_for_check, to_bound_for_check)
+      bound(@treemap.find(key, relation), from_bound_for_check, to_bound_for_check)
     end
 
     def lower_entry(key)
@@ -267,23 +264,19 @@ class TreeMap
       case args.count
       when 2
         from_inclusive, to_exclusive = *args
-        sub_map(from_inclusive, Bound::INCLUSIVE, to_exclusive, Bound::EXCLUSIVE)
+        bounded_sub_map(from_inclusive, Bound::INCLUSIVE, to_exclusive, Bound::EXCLUSIVE)
       when 4
         from, from_inclusive, to, to_inclusive = *args
         from_bound = from_inclusive ? Bound::INCLUSIVE : Bound::EXCLUSIVE
         to_bound = to_inclusive ? Bound::INCLUSIVE : Bound::EXCLUSIVE
-        sub_map(from, from_bound, to, to_bound)
+        bounded_sub_map(from, from_bound, to, to_bound)
       end
     end
 
     def bounded_sub_map(from, from_bound, to, to_bound)
       if !@ascending
-        from_tmp = from
-        from_bound_tmp = from_bound
-        from = to
-        from_bound = to_bound
-        to = from_tmp
-        to_bound = from_bound_tmp
+        from, to = to, from
+        from_bound, to_bound = to_bound, from_bound
       end
 
       # If both the current and requested bounds are exclusive, the isInBounds check must be
@@ -375,7 +368,7 @@ class TreeMap
     # each_node {|node| puts "#{node.key}->#{node.value}"}
     def each_node
       if block_given?
-        iter = BoundedNodeIterator.new(self, @treemap.root.first)
+        iter = BoundedNodeIterator.new(self, endpoint(true))
         while iter.has_next?
           yield iter.step_forward()
         end

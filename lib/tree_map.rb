@@ -652,11 +652,6 @@ class TreeMap
   def each(&blk)
     if block_given?
       each_node {|node| blk.call(node.key, node.value) }
-      # iter = NodeIterator.new(@root.first)
-      # while iter.has_next?
-      #   node = iter.step_forward()
-      #   yield node.key, node.value
-      # end
     else
       enum_for(:each)
     end
