@@ -20,14 +20,39 @@ gem install treemap
 ### Usage
 In IRB (some lines elided):
 ```
-```
-
-
-### Performance:
-
-On a 2.7GHz Core i5 MacBook Pro (Retina, 13-inch, Early 2015), here are some sample timings:
-
-```
+irb(main):001:0> require 'treemap'
+=> true
+irb(main):002:0> m = TreeMap.new; nil
+=> nil
+irb(main):003:0> m.put(1, "foo")
+=> nil
+irb(main):004:0> m.put(100, "baz")
+=> nil
+irb(main):005:0> m.put(10, "bar")
+=> nil
+irb(main):006:0> m.each {|k, v| puts "#{k} -> #{v}" }
+1 -> foo
+10 -> bar
+100 -> baz
+=> nil
+irb(main):007:0> m.to_a
+=> [[1, "foo"], [10, "bar"], [100, "baz"]]
+irb(main):008:0> m.keys
+=> #<Set: {1, 10, 100}>
+irb(main):009:0> m.values
+=> ["foo", "bar", "baz"]
+irb(main):010:0> m.first_key
+=> 1
+irb(main):011:0> m.last_key
+=> 100
+irb(main):012:0> m.lower_key(10)
+=> 1
+irb(main):013:0> m.floor_key(10)
+=> 10
+irb(main):014:0> m.ceiling_key(10)
+=> 10
+irb(main):015:0> m.higher_key(10)
+=> 100
 ```
 
 

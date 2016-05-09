@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'treemap'
-  s.version     = '1.0.2'
+  s.version     = '1.0.3'
   s.date        = '2016-05-05'
   s.summary     = "TreeMap is a Ruby port of the Android implementation of Java's java.util.TreeMap class."
   s.description = <<-DESC
@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   DESC
   s.authors     = ["David Ellis"]
   s.email       = "davidkellis@gmail.com"
-  s.files       = ["lib/tree_map.rb", "lib/bounded_map.rb"]
+  s.files       = ["lib/treemap.rb", "lib/treemap/tree_map.rb", "lib/treemap/bounded_map.rb"]
   s.homepage    = "https://github.com/davidkellis/treemap"
   s.license     = "MIT"
 end

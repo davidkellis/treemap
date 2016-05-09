@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require 'tree_map'
+require 'treemap'
 require 'set'
 
 class TreeMapTest < Minitest::Test

@@ -669,5 +669,3 @@ class TreeMap
     end
   end
 end
-
-require_relative 'bounded_map'
