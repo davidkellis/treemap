@@ -73,5 +73,11 @@ class TreeMapTest < Minitest::Test
 
     tm2 = m.tail_map(80, false)
     assert_equal(tm2.to_a, [[90, "j"], [100, "k"]])
+
+    sm1 = m.sub_map(30, 50)
+    assert_equal(sm1.to_a, [[30, "d"], [40, "e"]])
+
+    sm2 = m.sub_map(30, false, 50, true)
+    assert_equal(sm2.to_a, [[40, "e"], [50, "f"]])
   end
 end

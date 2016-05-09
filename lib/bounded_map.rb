@@ -14,6 +14,11 @@ class TreeMap
 
     def initialize(treemap, ascending, from, from_bound, to, to_bound)
       @treemap = treemap
+      @ascending = ascending
+      @from = from
+      @from_bound = from_bound
+      @to = to
+      @to_bound = to_bound
 
       # Validate the bounds. In addition to checking that from <= to, we verify that the comparator supports our bound objects.
       if from_bound != Bound::NO_BOUND && to_bound != Bound::NO_BOUND
@@ -23,12 +28,6 @@ class TreeMap
       elsif to_bound != Bound::NO_BOUND
         comparator.call(to, to)
       end
-
-      @ascending = ascending
-      @from = from
-      @from_bound = from_bound
-      @to = to
-      @to_bound = to_bound
     end
 
     def empty?
