@@ -404,7 +404,7 @@ class TreeMap
       else
         # assert (delta == -1 || delta == 1)
         node.height = [left_height, right_height].max + 1
-        break if insert    # the height hasn't changed, so rebalancing is done!
+        break unless insert    # the height hasn't changed, so rebalancing is done!
       end
 
       node = node.parent
