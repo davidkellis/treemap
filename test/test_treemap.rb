@@ -80,4 +80,15 @@ class TreeMapTest < Minitest::Test
     sm2 = m.sub_map(30, false, 50, true)
     assert_equal(sm2.to_a, [[40, "e"], [50, "f"]])
   end
+
+  def test_rebalance
+    m = TreeMap.new
+
+    m.put(1, nil)
+    m.put(5, nil)
+    m.put(2, nil)
+    m.put(3, nil)
+    m.put(4, nil)
+    m.remove(5)
+  end
 end
