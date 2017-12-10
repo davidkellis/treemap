@@ -1,3 +1,5 @@
+$LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
+
 require 'minitest/autorun'
 require 'treemap'
 require 'set'
@@ -45,6 +47,10 @@ class TreeMapTest < Minitest::Test
     assert_equal(100, m.floor_key(500))
     assert_equal(nil, m.ceiling_key(500))
     assert_equal(nil, m.higher_key(500))
+  end
+
+  def test_tree_map_empty_iteration
+    TreeMap.new.each { fail }
   end
 
   def test_bounded_map

@@ -660,7 +660,7 @@ class TreeMap
   # each_node {|node| puts "#{node.key}->#{node.value}"}
   def each_node
     if block_given?
-      iter = NodeIterator.new(@root.first)
+      iter = NodeIterator.new(empty? ? nil : @root.first)
       while iter.has_next?
         yield iter.step_forward()
       end
