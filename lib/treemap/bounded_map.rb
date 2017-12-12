@@ -170,7 +170,7 @@ class TreeMap
           key = @to
           if @to_bound == Bound::EXCLUSIVE
             relation = Relation::LOWER # 'to' is too high
-          else comparison < 0
+          elsif comparison < 0
             relation = Relation::FLOOR # we already went lower
           end
         end
@@ -182,7 +182,7 @@ class TreeMap
           key = @from
           if @from_bound == Bound::EXCLUSIVE
             relation = Relation::HIGHER # 'from' is too low
-          else comparison > 0
+          elsif comparison > 0
             relation = Relation::CEILING # we already went higher
           end
         end
@@ -321,7 +321,7 @@ class TreeMap
       case args.count
       when 1
         from_inclusive = args.first
-        bounded_sub_map(fromInclusive, Bound::INCLUSIVE, nil, Bound::NO_BOUND)
+        bounded_sub_map(from_inclusive, Bound::INCLUSIVE, nil, Bound::NO_BOUND)
       when 2
         from, inclusive = *args
         from_bound = inclusive ? Bound::INCLUSIVE : Bound::EXCLUSIVE
